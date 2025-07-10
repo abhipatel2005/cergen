@@ -7,6 +7,7 @@ const XLSX = require('xlsx');
 const PDFProcessor = require('./pdfProcessor');
 const PPTXProcessor = require('./pptxProcessor');
 const EmailService = require('./emailService');
+const CanvaIntegration = require('./canvaIntegration');
 require('dotenv').config();
 
 const app = express();
@@ -121,6 +122,7 @@ const extractDataFromExcel = async (filePath) => {
 const pdfProcessor = new PDFProcessor();
 const pptxProcessor = new PPTXProcessor();
 const emailService = new EmailService();
+const canvaIntegration = new CanvaIntegration();
 
 // Configure email service from environment variables
 emailService.configureFromEnv();
@@ -488,6 +490,98 @@ app.post('/send-certificates', async (req, res) => {
         console.error('Error sending certificates:', error);
         res.status(500).json({
             error: error.message || 'Internal server error'
+        });
+    }
+});
+
+// Canva Integration Endpoints
+
+// Get Canva templates
+app.get('/canva/templates', async (req, res) => {
+    try {
+        const { category, search, limit, offset } = req.query;
+
+        const result = await canvaIntegration.searchTemplates({
+            query: search,
+            category: category,
+            limit: parseInt(limit) || 20,
+            offset: parseInt(offset) || 0
+        });
+
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Get Canva template categories
+app.get('/canva/categories', (req, res) => {
+    try {
+        const categories = canvaIntegration.getCategories();
+        res.json({
+            success: true,
+            categories: categories
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Get specific Canva template details
+app.get('/canva/templates/:templateId', (req, res) => {
+    try {
+        const { templateId } = req.params;
+        const result = canvaIntegration.getTemplateDetails(templateId);
+        res.json(result);
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Download Canva template
+app.post('/canva/download/:templateId', async (req, res) => {
+    try {
+        const { templateId } = req.params;
+        const timestamp = Date.now();
+        const outputPath = path.join('./templates', `canva-${templateId}-${timestamp}.pptx`);
+
+        const result = await canvaIntegration.downloadTemplate(templateId, outputPath);
+
+        if (result.success) {
+            res.json({
+                success: true,
+                templatePath: outputPath,
+                template: result.template
+            });
+        } else {
+            res.status(400).json(result);
+        }
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// Check Canva configuration status
+app.get('/canva/status', (req, res) => {
+    try {
+        const status = canvaIntegration.checkConfiguration();
+        res.json(status);
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
         });
     }
 });
