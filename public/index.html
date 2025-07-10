@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Certificate Generator</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 40px;
+        }
+
+        .upload-section {
+            margin-bottom: 30px;
+        }
+
+        .file-input-group {
+            margin-bottom: 25px;
+        }
+
+        .file-input-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .file-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .file-input:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+
+        .generate-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1.1em;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+
+        .generate-btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .generate-btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        .results {
+            display: none;
+            margin-top: 30px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .results h3 {
+            color: #28a745;
+            margin-bottom: 15px;
+        }
+
+        .certificate-list {
+            list-style: none;
+        }
+
+        .certificate-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 10px;
+            margin-bottom: 8px;
+            background: white;
+            border-radius: 5px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .download-btn {
+            padding: 5px 15px;
+            background: #28a745;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            font-size: 0.9em;
+            transition: background 0.2s ease;
+        }
+
+        .download-btn:hover {
+            background: #218838;
+        }
+
+        .error {
+            display: none;
+            padding: 15px;
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+            border-radius: 5px;
+            margin-top: 15px;
+        }
+
+        .instructions {
+            background: #e7f3ff;
+            border: 1px solid #b8daff;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 30px;
+        }
+
+        .instructions h3 {
+            color: #004085;
+            margin-bottom: 10px;
+        }
+
+        .instructions ul {
+            color: #004085;
+            padding-left: 20px;
+        }
+
+        .instructions li {
+            margin-bottom: 5px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Certificate Generator</h1>
+            <p>Generate personalized certificates from Excel data and PDF templates</p>
+        </div>
+
+        <div class="content">
+            <div class="instructions">
+                <h3>How to use:</h3>
+                <ul>
+                    <li>Upload an Excel file (.xlsx or .xls) with a "name" column containing the names for certificates
+                    </li>
+                    <li><strong>NEW!</strong> Upload a PowerPoint template (.pptx) with placeholders like {{name}} for
+                        true text replacement</li>
+                    <li>Or upload a PDF template (legacy support with overlay method)</li>
+                    <li>Click "Generate Certificates" to create personalized certificates</li>
+                    <li>Download individual certificates or view all generated batches</li>
+                </ul>
+
+                <div style="background: #e8f5e8; padding: 15px; border-radius: 5px; margin-top: 15px;">
+                    <h4 style="color: #2d5a2d; margin-bottom: 10px;">🎉 PPTX Templates (Recommended):</h4>
+                    <ul style="color: #2d5a2d;">
+                        <li><strong>{{name}}</strong> - Person's name</li>
+                        <li><strong>{{date}}</strong> - Current date</li>
+                        <li><strong>{{course}}</strong> - Course name</li>
+                        <li><strong>{{instructor}}</strong> - Instructor name</li>
+                        <li><strong>{{organization}}</strong> - Organization name</li>
+                    </ul>
+                    <p style="color: #2d5a2d; margin-top: 10px; font-size: 0.9em;">
+                        Create your certificate in PowerPoint, add placeholders, and get perfect text replacement!
+                    </p>
+                </div>
+            </div>
+
+            <form id="uploadForm" enctype="multipart/form-data">
+                <div class="upload-section">
+                    <div class="file-input-group">
+                        <label for="excelFile">Excel File (with names):</label>
+                        <input type="file" id="excelFile" name="excel" accept=".xlsx,.xls" class="file-input" required>
+                    </div>
+
+                    <div class="file-input-group">
+                        <label for="templateFile">Template File (PPTX recommended, PDF supported):</label>
+                        <input type="file" id="templateFile" name="template" accept=".pdf,.pptx" class="file-input"
+                            required>
+                        <small style="color: #666; margin-top: 5px; display: block;">
+                            📄 PPTX: True placeholder replacement | 📄 PDF: Overlay method
+                        </small>
+                    </div>
+
+                    <div class="file-input-group" id="additionalFields" style="display: none;">
+                        <h4 style="margin-bottom: 10px;">Additional Information (for PPTX templates):</h4>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                            <input type="text" id="courseField" placeholder="Course name (optional)"
+                                style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <input type="text" id="instructorField" placeholder="Instructor name (optional)"
+                                style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <input type="text" id="organizationField" placeholder="Organization name (optional)"
+                                style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <input type="date" id="dateField"
+                                style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="generate-btn" id="generateBtn">
+                        Generate Certificates
+                    </button>
+                </div>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <p>Generating certificates...</p>
+            </div>
+
+            <div class="error" id="error"></div>
+
+            <div class="results" id="results">
+                <h3>Generated Certificates</h3>
+                <ul class="certificate-list" id="certificateList"></ul>
+
+                <div id="emailSection"
+                    style="display: none; margin-top: 30px; padding: 20px; background: #f0f8ff; border-radius: 8px;">
+                    <h3>📧 Email Certificates</h3>
+                    <div id="emailStatus" style="margin-bottom: 15px;"></div>
+
+                    <div id="emailConfig" style="display: none;">
+                        <h4>Email Configuration</h4>
+                        <div
+                            style="background: #fff3cd; padding: 10px; border-radius: 4px; margin-bottom: 15px; font-size: 0.9em;">
+                            <strong>📝 Gmail Setup Instructions:</strong><br>
+                            1. Enable 2-Factor Authentication on your Gmail account<br>
+                            2. Generate App Password: <a href="https://myaccount.google.com/apppasswords"
+                                target="_blank">myaccount.google.com/apppasswords</a><br>
+                            3. Use the 16-character App Password (not your regular password)
+                        </div>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 15px;">
+                            <input type="email" id="emailUser" placeholder="Your email address"
+                                style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                            <input type="password" id="emailPass" placeholder="16-character App Password"
+                                style="padding: 8px; border: 1px solid #ddd; border-radius: 4px;">
+                        </div>
+                        <button onclick="configureEmail()" id="configEmailBtn"
+                            style="padding: 8px 16px; background: #28a745; color: white; border: none; border-radius: 4px; cursor: pointer;">Configure
+                            & Test Email</button>
+                    </div>
+
+                    <div id="emailForm" style="display: none;">
+                        <h4>Email Settings</h4>
+                        <div style="margin-bottom: 15px;">
+                            <label>Subject:</label>
+                            <input type="text" id="emailSubject" value="🎓 Your Certificate is Ready!"
+                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label>Custom Message:</label>
+                            <textarea id="emailMessage" rows="4"
+                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;"
+                                placeholder="Dear {{name}}, Congratulations on completing the course..."></textarea>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label>Sender Name:</label>
+                            <input type="text" id="senderName" placeholder="Certificate Authority"
+                                style="width: 100%; padding: 8px; border: 1px solid #ddd; border-radius: 4px; margin-top: 5px;">
+                        </div>
+                        <button onclick="sendEmails()" id="sendEmailBtn"
+                            style="padding: 10px 20px; background: #007bff; color: white; border: none; border-radius: 4px; cursor: pointer;">Send
+                            Certificates via Email</button>
+                    </div>
+
+                    <div id="emailResults" style="display: none; margin-top: 15px;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Show/hide additional fields based on template type
+        document.getElementById('templateFile').addEventListener('change', function () {
+            const file = this.files[0];
+            const additionalFields = document.getElementById('additionalFields');
+
+            if (file && file.name.toLowerCase().endsWith('.pptx')) {
+                additionalFields.style.display = 'block';
+            } else {
+                additionalFields.style.display = 'none';
+            }
+        });
+
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const formData = new FormData();
+            const excelFile = document.getElementById('excelFile').files[0];
+            const templateFile = document.getElementById('templateFile').files[0];
+
+            if (!excelFile || !templateFile) {
+                showError('Please select both Excel file and template');
+                return;
+            }
+
+            formData.append('excel', excelFile);
+            formData.append('template', templateFile);
+
+            // Add additional fields for PPTX templates
+            if (templateFile.name.toLowerCase().endsWith('.pptx')) {
+                const course = document.getElementById('courseField').value;
+                const instructor = document.getElementById('instructorField').value;
+                const organization = document.getElementById('organizationField').value;
+                const date = document.getElementById('dateField').value;
+
+                if (course) formData.append('course', course);
+                if (instructor) formData.append('instructor', instructor);
+                if (organization) formData.append('organization', organization);
+                if (date) formData.append('date', date);
+            }
+
+            // Show loading
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('generateBtn').disabled = true;
+            document.getElementById('results').style.display = 'none';
+            document.getElementById('error').style.display = 'none';
+
+            try {
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    showResults(result);
+                } else {
+                    showError(result.error || 'An error occurred');
+                }
+            } catch (error) {
+                showError('Network error: ' + error.message);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('generateBtn').disabled = false;
+            }
+        });
+
+        // Global variables for email functionality
+        let currentBatchData = null;
+
+        function showResults(result) {
+            currentBatchData = result;
+            const certificateList = document.getElementById('certificateList');
+            certificateList.innerHTML = '';
+
+            result.generatedFiles.forEach(file => {
+                const li = document.createElement('li');
+                li.className = 'certificate-item';
+                li.innerHTML = `
+                    <span>Certificate for: <strong>${file.name}</strong></span>
+                    <a href="/download/${result.batchId}/${file.filename}" class="download-btn" target="_blank">Download</a>
+                `;
+                certificateList.appendChild(li);
+            });
+
+            document.getElementById('results').style.display = 'block';
+
+            // Show email section if emails are available
+            if (result.hasEmails) {
+                showEmailSection(result);
+            }
+        }
+
+        function showEmailSection(result) {
+            const emailSection = document.getElementById('emailSection');
+            const emailStatus = document.getElementById('emailStatus');
+
+            emailStatus.innerHTML = `
+                <div style="background: #d4edda; padding: 10px; border-radius: 4px; color: #155724;">
+                    ✅ Email addresses found in Excel file (${result.emailColumn} column)
+                    <br>Ready to send ${result.excelData.filter(item => item.email).length} certificates via email
+                </div>
+            `;
+
+            emailSection.style.display = 'block';
+            checkEmailStatus();
+        }
+
+        async function checkEmailStatus() {
+            try {
+                const response = await fetch('/email-status');
+                const status = await response.json();
+
+                if (status.configured) {
+                    document.getElementById('emailForm').style.display = 'block';
+                    document.getElementById('emailConfig').style.display = 'none';
+                } else {
+                    document.getElementById('emailConfig').style.display = 'block';
+                    document.getElementById('emailForm').style.display = 'none';
+                }
+            } catch (error) {
+                console.error('Error checking email status:', error);
+            }
+        }
+
+        async function configureEmail() {
+            const user = document.getElementById('emailUser').value;
+            const pass = document.getElementById('emailPass').value;
+            const configBtn = document.getElementById('configEmailBtn');
+
+            if (!user || !pass) {
+                alert('Please enter both email and password');
+                return;
+            }
+
+            // Show loading state
+            configBtn.disabled = true;
+            configBtn.textContent = 'Configuring & Testing...';
+
+            try {
+                const response = await fetch('/configure-email', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        service: 'gmail',
+                        user: user,
+                        password: pass
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    alert('✅ Email configured and tested successfully!\nYou can now send certificates via email.');
+                    checkEmailStatus();
+                    // Clear the password field for security
+                    document.getElementById('emailPass').value = '';
+                } else {
+                    alert('❌ Email configuration failed:\n\n' + result.error + '\n\nPlease check your credentials and try again.');
+                }
+            } catch (error) {
+                alert('❌ Error configuring email: ' + error.message);
+            } finally {
+                configBtn.disabled = false;
+                configBtn.textContent = 'Configure & Test Email';
+            }
+        }
+
+        async function sendEmails() {
+            if (!currentBatchData) {
+                alert('No certificates available to send');
+                return;
+            }
+
+            const subject = document.getElementById('emailSubject').value;
+            const message = document.getElementById('emailMessage').value;
+            const senderName = document.getElementById('senderName').value;
+
+            // Prepare recipients with email addresses
+            const recipients = currentBatchData.excelData
+                .filter(item => item.email && item.email.trim())
+                .map(item => {
+                    const matchingFile = currentBatchData.generatedFiles.find(file =>
+                        file.name === item.name
+                    );
+                    return {
+                        name: item.name,
+                        email: item.email,
+                        filename: matchingFile ? matchingFile.filename : null
+                    };
+                })
+                .filter(recipient => recipient.filename);
+
+            if (recipients.length === 0) {
+                alert('No valid email addresses found or no matching certificates');
+                return;
+            }
+
+            const sendBtn = document.getElementById('sendEmailBtn');
+            sendBtn.disabled = true;
+            sendBtn.textContent = 'Sending...';
+
+            try {
+                const response = await fetch('/send-certificates', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        batchId: currentBatchData.batchId,
+                        recipients: recipients,
+                        emailConfig: {
+                            subject: subject,
+                            customText: message,
+                            course: document.getElementById('courseField').value,
+                            organization: document.getElementById('organizationField').value,
+                            senderName: senderName
+                        }
+                    })
+                });
+
+                const result = await response.json();
+                showEmailResults(result);
+
+            } catch (error) {
+                alert('Error sending emails: ' + error.message);
+            } finally {
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send Certificates via Email';
+            }
+        }
+
+        function showEmailResults(result) {
+            const emailResults = document.getElementById('emailResults');
+
+            let html = `
+                <h4>Email Results</h4>
+                <div style="background: ${result.success ? '#d4edda' : '#f8d7da'}; padding: 15px; border-radius: 4px; margin-bottom: 10px;">
+                    <strong>Sent:</strong> ${result.sent} | <strong>Failed:</strong> ${result.failed}
+                </div>
+            `;
+
+            if (result.results && result.results.length > 0) {
+                html += '<h5>Successfully Sent:</h5><ul>';
+                result.results.forEach(res => {
+                    html += `<li>✅ ${res.name} (${res.recipient})</li>`;
+                });
+                html += '</ul>';
+            }
+
+            if (result.errors && result.errors.length > 0) {
+                html += '<h5>Failed to Send:</h5><ul>';
+                result.errors.forEach(error => {
+                    html += `<li>❌ ${error.name} (${error.email}): ${error.error}</li>`;
+                });
+                html += '</ul>';
+            }
+
+            emailResults.innerHTML = html;
+            emailResults.style.display = 'block';
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('error');
+            errorDiv.textContent = message;
+            errorDiv.style.display = 'block';
+        }
+
+        // File input styling
+        document.querySelectorAll('.file-input').forEach(input => {
+            input.addEventListener('change', function () {
+                if (this.files.length > 0) {
+                    this.style.borderColor = '#28a745';
+                    this.style.background = '#f8fff9';
+                }
+            });
+        });
+    </script>
+</body>
+
+</html>

@@ -1,0 +1,6 @@
+.env
+generated/*
+uploads/*
+.env.example
+node_modules/
+templates/*
