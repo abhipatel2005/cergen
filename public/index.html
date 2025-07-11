@@ -664,6 +664,74 @@
             color: #0284c7;
         }
 
+        .field-mapping-item {
+            display: flex;
+            align-items: center;
+            padding: 16px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            margin-bottom: 12px;
+        }
+
+        .field-mapping-item.mapped {
+            background: #f0fdf4;
+            border-color: #bbf7d0;
+        }
+
+        .field-mapping-checkbox {
+            margin-right: 12px;
+        }
+
+        .field-mapping-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .field-mapping-placeholder {
+            font-weight: 600;
+            color: #1e293b;
+            font-family: 'Courier New', monospace;
+            background: #e2e8f0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 0.875rem;
+        }
+
+        .field-mapping-description {
+            font-size: 0.875rem;
+            color: #64748b;
+            margin-top: 4px;
+        }
+
+        .field-mapping-select {
+            min-width: 200px;
+            margin-left: 16px;
+        }
+
+        .field-mapping-preview {
+            margin-left: 12px;
+            padding: 4px 8px;
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            color: #1e40af;
+        }
+
+        .placeholder-detected {
+            background: #fef3c7;
+            border: 1px solid #f59e0b;
+            padding: 8px 12px;
+            border-radius: 6px;
+            margin-bottom: 16px;
+        }
+
+        .placeholder-count {
+            font-weight: 600;
+            color: #92400e;
+        }
+
         @media (max-width: 768px) {
             .main-content {
                 grid-template-columns: 1fr;
@@ -721,7 +789,7 @@
                         <div class="section-title">Template Selection</div>
                         <div class="template-tabs">
                             <button type="button" class="template-tab active" data-tab="upload">Upload Template</button>
-                            <button type="button" class="template-tab" data-tab="canva">Canva Templates</button>
+                            <button type="button" class="template-tab" data-tab="drive">Google Drive Templates</button>
                         </div>
 
                         <!-- Upload Template Tab -->
@@ -740,20 +808,46 @@
                             </div>
                         </div>
 
-                        <!-- Canva Templates Tab -->
-                        <div class="tab-content" id="canva-tab">
+                        <!-- Google Drive Templates Tab -->
+                        <div class="tab-content" id="drive-tab">
+                            <div class="alert alert-info">
+                                <strong>Google Drive Integration</strong><br>
+                                Templates are fetched from a shared Google Drive folder. Upload your PPTX/PDF templates
+                                to the configured Drive folder.
+                            </div>
+
+                            <div style="margin-bottom: 16px; display: flex; gap: 12px; flex-wrap: wrap;">
+                                <button type="button" class="btn btn-outline" onclick="refreshDriveTemplates()">
+                                    <i class="fas fa-sync-alt"></i>
+                                    Refresh Templates
+                                </button>
+                                <button type="button" class="btn btn-outline" onclick="configureDriveAccess()">
+                                    <i class="fas fa-cog"></i>
+                                    Configure Drive Access
+                                </button>
+                                <button type="button" class="btn btn-outline" onclick="openDriveFolder()"
+                                    target="_blank">
+                                    <i class="fas fa-external-link-alt"></i>
+                                    Open Drive Folder
+                                </button>
+                            </div>
+
                             <div class="form-group">
                                 <label class="form-label">Template Category</label>
-                                <select class="form-select" id="templateCategory" onchange="loadCanvaTemplates()">
-                                    <option value="">All Categories</option>
+                                <select class="form-select" id="templateCategory" onchange="loadDriveTemplates()">
+                                    <option value="">All Templates</option>
                                     <option value="professional">Professional</option>
                                     <option value="academic">Academic</option>
                                     <option value="corporate">Corporate</option>
                                     <option value="creative">Creative</option>
                                 </select>
                             </div>
-                            <div class="template-grid" id="canvaTemplates">
-                                <!-- Templates will be loaded here -->
+
+                            <div class="template-grid" id="driveTemplates">
+                                <div class="template-loading">
+                                    <i class="fas fa-spinner fa-spin"></i>
+                                    <span>Loading Google Drive templates...</span>
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -781,6 +875,36 @@
                                 <label class="form-label">Date</label>
                                 <input type="date" id="dateField" class="form-input">
                             </div>
+                        </div>
+                    </div>
+
+                    <!-- Smart Field Mapping Section -->
+                    <div class="form-section" id="fieldMappingSection"
+                        style="display: block; border: 2px solid #3b82f6; background: #f0f9ff;">
+                        <div class="section-title">Smart Field Mapping</div>
+                        <div class="alert alert-info">
+                            <strong>Automatic Field Detection</strong><br>
+                            We found placeholders in your template. Map them to Excel columns for automatic population.
+                        </div>
+                        <div id="fieldMappingContainer">
+                            <!-- Dynamic mapping fields will be inserted here -->
+                            <div style="padding: 20px; text-align: center; color: #64748b;">
+                                <p><strong>Smart Field Mapping Section</strong></p>
+                                <p>This section will show placeholder mappings when you upload both Excel and PPTX
+                                    files.</p>
+                                <p>Click "Test Mapping" button to see a demo, or upload your files to see real mappings.
+                                </p>
+                            </div>
+                        </div>
+                        <div style="margin-top: 16px;">
+                            <button type="button" class="btn btn-outline" onclick="analyzeTemplate()">
+                                <i class="fas fa-search"></i>
+                                Re-analyze Template
+                            </button>
+                            <button type="button" class="btn btn-outline" onclick="previewMapping()">
+                                <i class="fas fa-eye"></i>
+                                Preview Mapping
+                            </button>
                         </div>
                     </div>
 
@@ -817,6 +941,10 @@
                             style="font-size: 0.75rem;">
                             Test Data
                         </button>
+                        <button type="button" class="btn btn-outline" onclick="testFieldMapping()"
+                            style="font-size: 0.75rem;">
+                            Test Mapping
+                        </button>
                     </div>
                 </form>
             </div>
@@ -840,8 +968,8 @@
                         <span class="status-value status-error" id="pptxStatus">Checking...</span>
                     </div>
                     <div class="status-item">
-                        <span class="status-label">Canva Integration</span>
-                        <span class="status-value status-success" id="canvaStatus">Available</span>
+                        <span class="status-label">Google Drive</span>
+                        <span class="status-value status-error" id="driveStatus">Not configured</span>
                     </div>
                 </div>
 
@@ -1054,6 +1182,76 @@ Best regards,
             </div>
         </div>
 
+        <!-- Google Drive Configuration Modal -->
+        <div class="modal" id="driveConfigModal">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <div class="modal-title">Google Drive Configuration</div>
+                    <button class="modal-close" onclick="closeDriveConfig()">&times;</button>
+                </div>
+                <div class="modal-body">
+                    <div class="alert alert-info">
+                        <strong>Google Drive Setup Instructions:</strong><br>
+                        1. Go to <a href="https://console.cloud.google.com" target="_blank">Google Cloud Console</a><br>
+                        2. Create a project and enable Google Drive API<br>
+                        3. Go to "IAM & Admin" → "Service Accounts" → "Create Service Account"<br>
+                        4. Download the JSON key file<br>
+                        5. Create a folder in Google Drive for templates<br>
+                        6. Share the folder with the service account email (from JSON file)<br>
+                        7. Paste the entire JSON file content below
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Service Account Email</label>
+                        <div style="display: flex; gap: 8px;">
+                            <input type="email" id="driveServiceEmail" class="form-input" style="flex: 1;"
+                                placeholder="service-account@project.iam.gserviceaccount.com">
+                            <button type="button" class="btn btn-outline" onclick="extractEmailFromJson()"
+                                style="white-space: nowrap;">
+                                <i class="fas fa-magic"></i>
+                                Extract from JSON
+                            </button>
+                        </div>
+                        <div style="font-size: 0.875rem; color: #64748b; margin-top: 4px;">
+                            This will be auto-filled when you paste the JSON below, or click "Extract from JSON"
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Service Account JSON</label>
+                        <textarea id="drivePrivateKey" class="form-input" rows="6"
+                            placeholder="Paste your entire service account JSON file content here..."></textarea>
+                        <div style="font-size: 0.875rem; color: #64748b; margin-top: 4px;">
+                            Paste the entire JSON file content from Google Cloud Console. The system will extract the
+                            required fields automatically.
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Template Folder ID</label>
+                        <input type="text" id="driveFolderId" class="form-input"
+                            placeholder="Google Drive folder ID containing templates">
+                        <div style="font-size: 0.875rem; color: #64748b; margin-top: 4px;">
+                            Find this in the Drive folder URL: drive.google.com/drive/folders/<strong>FOLDER_ID</strong>
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 12px; margin-top: 24px;">
+                        <button type="button" class="btn btn-primary" onclick="saveDriveConfig()" style="flex: 1;">
+                            <i class="fas fa-save"></i>
+                            Save Configuration
+                        </button>
+                        <button type="button" class="btn btn-outline" onclick="testDriveConnection()">
+                            <i class="fas fa-vial"></i>
+                            Test Connection
+                        </button>
+                    </div>
+
+                    <div id="driveConfigResult" style="margin-top: 16px;"></div>
+                </div>
+            </div>
+        </div>
+
         <!-- Loading Overlay -->
         <div class="loading-overlay" id="loadingOverlay">
             <div class="loading-content">
@@ -1105,9 +1303,12 @@ Best regards,
     <script>
         // Global variables
         let currentBatchData = null;
-        let selectedCanvaTemplate = null;
+        let selectedDriveTemplate = null;
         let selectedExcelFile = null;
         let selectedTemplateFile = null;
+        let detectedPlaceholders = [];
+        let excelColumns = [];
+        let fieldMappings = {};
 
         // Initialize variables
         console.log('Initializing global variables...');
@@ -1117,7 +1318,7 @@ Best regards,
             console.log('DOM loaded, initializing...');
             initializeEventListeners();
             checkSystemStatus();
-            loadCanvaTemplates();
+            loadDriveTemplates();
         });
 
         function initializeEventListeners() {
@@ -1227,6 +1428,9 @@ Best regards,
                 document.getElementById('excelStatus').textContent = file.name;
                 document.getElementById('excelStatus').className = 'status-value status-success';
 
+                // Extract Excel columns for field mapping
+                extractExcelColumns(file);
+
                 console.log('Excel file selected:', file.name, selectedExcelFile);
             }
         }
@@ -1257,10 +1461,13 @@ Best regards,
                 // Show additional fields for PPTX
                 if (file.name.toLowerCase().endsWith('.pptx')) {
                     document.getElementById('certificateDetails').style.display = 'block';
+                    // Analyze PPTX template for placeholders
+                    console.log('Analyzing PPTX template for placeholders...');
+                    analyzeTemplateFile(file);
                 }
 
-                // Clear Canva selection if any
-                selectedCanvaTemplate = null;
+                // Clear Drive selection if any
+                selectedDriveTemplate = null;
                 document.querySelectorAll('.template-card').forEach(card => {
                     card.classList.remove('selected');
                 });
@@ -1273,40 +1480,80 @@ Best regards,
             }
         }
 
-        async function loadCanvaTemplates() {
+        async function loadDriveTemplates() {
             const category = document.getElementById('templateCategory').value;
-            const templatesGrid = document.getElementById('canvaTemplates');
+            const templatesGrid = document.getElementById('driveTemplates');
+
+            templatesGrid.innerHTML = '<div class="template-loading"><i class="fas fa-spinner fa-spin"></i><span>Loading Google Drive templates...</span></div>';
 
             try {
-                const response = await fetch(`/canva/templates?category=${category}&limit=12`);
+                const response = await fetch(`/drive/templates?category=${category}`);
                 const result = await response.json();
 
-                if (result.success) {
+                if (result.success && result.templates.length > 0) {
                     let html = '';
                     result.templates.forEach(template => {
+                        const fileIcon = template.mimeType.includes('powerpoint') || template.name.endsWith('.pptx') ? 'fa-file-powerpoint' : 'fa-file-pdf';
+                        const fileType = template.mimeType.includes('powerpoint') || template.name.endsWith('.pptx') ? 'PPTX' : 'PDF';
+
                         html += `
-                            <div class="template-card" onclick="selectCanvaTemplate('${template.id}')">
+                            <div class="template-card" onclick="selectDriveTemplate('${template.id}', '${template.name}')">
                                 <div class="template-preview">
-                                    <img src="${template.thumbnail}" alt="${template.title}" style="width: 100%; height: 100%; object-fit: cover;">
+                                    <div style="display: flex; align-items: center; justify-content: center; height: 100%; background: #f8fafc;">
+                                        <i class="fas ${fileIcon}" style="font-size: 3rem; color: #64748b;"></i>
+                                    </div>
                                 </div>
                                 <div class="template-info">
-                                    <div class="template-title">${template.title}</div>
-                                    <div class="template-desc">${template.description}</div>
+                                    <div class="template-title">${template.name}</div>
+                                    <div class="template-desc">${fileType} • ${(template.size / 1024 / 1024).toFixed(1)} MB</div>
                                 </div>
                             </div>
                         `;
                     });
                     templatesGrid.innerHTML = html;
+                } else if (result.error && result.error.includes('not configured')) {
+                    templatesGrid.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #64748b;">
+                            <i class="fas fa-cog" style="font-size: 3rem; margin-bottom: 16px; display: block;"></i>
+                            <div style="font-size: 1.1rem; margin-bottom: 8px;">Google Drive Not Configured</div>
+                            <div style="font-size: 0.875rem; margin-bottom: 16px;">Configure your Google Drive service account to access templates</div>
+                            <button type="button" class="btn btn-primary" onclick="configureDriveAccess()" style="margin-top: 16px;">
+                                <i class="fas fa-cog"></i>
+                                Configure Google Drive
+                            </button>
+                        </div>
+                    `;
                 } else {
-                    templatesGrid.innerHTML = '<div style="text-align: center; color: #64748b; padding: 20px;">No templates available</div>';
+                    templatesGrid.innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #64748b;">
+                            <i class="fas fa-folder-open" style="font-size: 3rem; margin-bottom: 16px; display: block;"></i>
+                            <div style="font-size: 1.1rem; margin-bottom: 8px;">No templates found</div>
+                            <div style="font-size: 0.875rem;">Upload PPTX or PDF templates to your Google Drive folder</div>
+                            <button type="button" class="btn btn-primary" onclick="openDriveFolder()" style="margin-top: 16px;">
+                                <i class="fas fa-external-link-alt"></i>
+                                Open Drive Folder
+                            </button>
+                        </div>
+                    `;
                 }
             } catch (error) {
-                templatesGrid.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 20px;">Error loading templates</div>';
+                console.error('Error loading Drive templates:', error);
+                templatesGrid.innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #ef4444;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 3rem; margin-bottom: 16px; display: block;"></i>
+                        <div style="font-size: 1.1rem; margin-bottom: 8px;">Error loading templates</div>
+                        <div style="font-size: 0.875rem; margin-bottom: 16px;">${error.message}</div>
+                        <button type="button" class="btn btn-outline" onclick="loadDriveTemplates()">
+                            <i class="fas fa-redo"></i>
+                            Retry
+                        </button>
+                    </div>
+                `;
             }
         }
 
-        function selectCanvaTemplate(templateId) {
-            selectedCanvaTemplate = templateId;
+        function selectDriveTemplate(templateId, templateName) {
+            selectedDriveTemplate = { id: templateId, name: templateName };
             selectedTemplateFile = null; // Clear file selection
 
             // Update UI to show selection
@@ -1332,10 +1579,399 @@ Best regards,
             document.getElementById('templateFile').addEventListener('change', handleTemplateFile);
 
             // Update status indicator
-            document.getElementById('templateStatus').textContent = `Canva: ${templateId}`;
+            document.getElementById('templateStatus').textContent = `Drive: ${templateName}`;
             document.getElementById('templateStatus').className = 'status-value status-success';
 
-            console.log('Canva template selected:', templateId);
+            console.log('Google Drive template selected:', templateId, templateName);
+        }
+
+        // Field Mapping Functions
+        async function extractExcelColumns(file) {
+            try {
+                console.log('Starting Excel analysis for file:', file.name);
+                const formData = new FormData();
+                formData.append('excel', file);
+
+                console.log('Sending request to /analyze-excel...');
+                const response = await fetch('/analyze-excel', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                console.log('Excel analysis response status:', response.status);
+                const result = await response.json();
+                console.log('Excel analysis result:', result);
+
+                if (result.success) {
+                    excelColumns = result.columns;
+                    console.log('Excel columns extracted:', excelColumns);
+                    updateFieldMapping();
+                } else {
+                    console.error('Excel analysis failed:', result.error);
+                }
+            } catch (error) {
+                console.error('Error extracting Excel columns:', error);
+            }
+        }
+
+        async function analyzeTemplateFile(file) {
+            try {
+                console.log('Starting template analysis for file:', file.name);
+                const formData = new FormData();
+                formData.append('template', file);
+
+                console.log('Sending request to /analyze-template...');
+                const response = await fetch('/analyze-template', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                console.log('Response status:', response.status);
+                const result = await response.json();
+                console.log('Analysis result:', result);
+
+                if (result.success) {
+                    detectedPlaceholders = result.placeholders;
+                    console.log('Template placeholders detected:', detectedPlaceholders);
+                    updateFieldMapping();
+                } else {
+                    console.error('Template analysis failed:', result.error);
+                    showAlert('Failed to analyze template: ' + result.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error analyzing template:', error);
+                showAlert('Error analyzing template: ' + error.message, 'error');
+            }
+        }
+
+        async function analyzeTemplate() {
+            if (selectedTemplateFile) {
+                analyzeTemplateFile(selectedTemplateFile);
+            } else if (selectedDriveTemplate) {
+                // Analyze Drive template
+                try {
+                    const response = await fetch(`/analyze-drive-template/${selectedDriveTemplate.id}`);
+                    const result = await response.json();
+                    if (result.success) {
+                        detectedPlaceholders = result.placeholders;
+                        console.log('Drive template placeholders detected:', detectedPlaceholders);
+                        updateFieldMapping();
+                    }
+                } catch (error) {
+                    console.error('Error analyzing Drive template:', error);
+                }
+            }
+        }
+
+        function updateFieldMapping() {
+            console.log('updateFieldMapping called');
+            console.log('detectedPlaceholders:', detectedPlaceholders, 'length:', detectedPlaceholders.length);
+            console.log('excelColumns:', excelColumns, 'length:', excelColumns.length);
+
+            if (detectedPlaceholders.length === 0 || excelColumns.length === 0) {
+                console.log('Not enough data for field mapping - placeholders:', detectedPlaceholders.length, 'columns:', excelColumns.length);
+                return;
+            }
+
+            console.log('Proceeding with field mapping...');
+            const mappingSection = document.getElementById('fieldMappingSection');
+            const mappingContainer = document.getElementById('fieldMappingContainer');
+
+            if (!mappingSection || !mappingContainer) {
+                console.error('Mapping elements not found!');
+                return;
+            }
+
+            // Show the mapping section
+            mappingSection.style.display = 'block';
+
+            // Create placeholder count info
+            let html = `
+                <div class="placeholder-detected">
+                    <span class="placeholder-count">${detectedPlaceholders.length} placeholders</span> detected in template.
+                    Map them to Excel columns for automatic population.
+                </div>
+            `;
+
+            // Create mapping items
+            console.log('Creating mapping items for placeholders:', detectedPlaceholders);
+            detectedPlaceholders.forEach(placeholder => {
+                console.log('Processing placeholder:', placeholder);
+                const suggestedColumn = findBestMatch(placeholder, excelColumns);
+                console.log('Suggested column for', placeholder, ':', suggestedColumn);
+                const isAutoMapped = suggestedColumn !== null;
+
+                html += `
+                    <div class="field-mapping-item ${isAutoMapped ? 'mapped' : ''}">
+                        <input type="checkbox" class="field-mapping-checkbox"
+                               id="map_${placeholder}"
+                               ${isAutoMapped ? 'checked' : ''}
+                               onchange="toggleFieldMapping('${placeholder}', this.checked)">
+                        <div class="field-mapping-info">
+                            <div class="field-mapping-placeholder">{{${placeholder}}}</div>
+                            <div class="field-mapping-description">
+                                ${getPlaceholderDescription(placeholder)}
+                            </div>
+                        </div>
+                        <select class="form-select field-mapping-select"
+                                id="select_${placeholder}"
+                                onchange="updateSingleFieldMapping('${placeholder}', this.value)"
+                                ${!isAutoMapped ? 'disabled' : ''}>
+                            <option value="">Select Excel Column</option>
+                            ${excelColumns.map(col =>
+                    `<option value="${col}" ${col === suggestedColumn ? 'selected' : ''}>${col}</option>`
+                ).join('')}
+                        </select>
+                        ${isAutoMapped ? `<div class="field-mapping-preview">Auto-mapped</div>` : ''}
+                    </div>
+                `;
+
+                // Store initial mapping
+                if (isAutoMapped) {
+                    fieldMappings[placeholder] = suggestedColumn;
+                }
+            });
+
+            console.log('Setting mapping container HTML:', html.length, 'characters');
+            mappingContainer.innerHTML = html;
+            console.log('Field mappings after creation:', fieldMappings);
+        }
+
+        function findBestMatch(placeholder, columns) {
+            const lowerPlaceholder = placeholder.toLowerCase();
+            console.log('Finding best match for placeholder:', placeholder, 'in columns:', columns);
+
+            // Exact match
+            for (const col of columns) {
+                if (col.toLowerCase() === lowerPlaceholder) {
+                    console.log('Exact match found:', col);
+                    return col;
+                }
+            }
+
+            // Partial match
+            for (const col of columns) {
+                if (col.toLowerCase().includes(lowerPlaceholder) || lowerPlaceholder.includes(col.toLowerCase())) {
+                    console.log('Partial match found:', col);
+                    return col;
+                }
+            }
+
+            // Common mappings
+            const commonMappings = {
+                'name': ['name', 'full_name', 'fullname', 'student_name', 'participant'],
+                'email': ['email', 'email_address', 'mail'],
+                'course': ['course', 'course_name', 'subject', 'program'],
+                'date': ['date', 'completion_date', 'issue_date', 'certificate_date'],
+                'grade': ['grade', 'score', 'marks', 'result'],
+                'id': ['id', 'student_id', 'participant_id', 'certificate_id']
+            };
+
+            for (const [key, variations] of Object.entries(commonMappings)) {
+                if (variations.includes(lowerPlaceholder)) {
+                    for (const col of columns) {
+                        if (variations.includes(col.toLowerCase())) {
+                            return col;
+                        }
+                    }
+                }
+            }
+
+            console.log('No match found for placeholder:', placeholder);
+            return null;
+        }
+
+        function getPlaceholderDescription(placeholder) {
+            const descriptions = {
+                'name': 'Recipient\'s full name',
+                'email': 'Email address for delivery',
+                'course': 'Course or program name',
+                'date': 'Completion or issue date',
+                'grade': 'Grade or score achieved',
+                'id': 'Unique identifier',
+                'organization': 'Issuing organization',
+                'instructor': 'Instructor or teacher name',
+                'duration': 'Course duration',
+                'credits': 'Credit hours or points'
+            };
+
+            return descriptions[placeholder.toLowerCase()] || `Custom field: ${placeholder}`;
+        }
+
+        function toggleFieldMapping(placeholder, enabled) {
+            const selectElement = document.getElementById(`select_${placeholder}`);
+            const mappingItem = selectElement.closest('.field-mapping-item');
+
+            selectElement.disabled = !enabled;
+
+            if (enabled) {
+                mappingItem.classList.add('mapped');
+                if (selectElement.value) {
+                    fieldMappings[placeholder] = selectElement.value;
+                }
+            } else {
+                mappingItem.classList.remove('mapped');
+                delete fieldMappings[placeholder];
+            }
+
+            console.log('Field mappings updated:', fieldMappings);
+        }
+
+        function updateSingleFieldMapping(placeholder, column) {
+            if (column) {
+                fieldMappings[placeholder] = column;
+            } else {
+                delete fieldMappings[placeholder];
+            }
+            console.log('Field mappings updated:', fieldMappings);
+        }
+
+        function previewMapping() {
+            if (Object.keys(fieldMappings).length === 0) {
+                showAlert('No field mappings configured', 'warning');
+                return;
+            }
+
+            let preview = 'Field Mapping Preview:\n\n';
+            for (const [placeholder, column] of Object.entries(fieldMappings)) {
+                preview += `{{${placeholder}}} → Excel Column: "${column}"\n`;
+            }
+
+            alert(preview);
+        }
+
+        // Test function for field mapping
+        function testFieldMapping() {
+            console.log('Testing field mapping...');
+            console.log('detectedPlaceholders:', detectedPlaceholders);
+            console.log('excelColumns:', excelColumns);
+            console.log('fieldMappings:', fieldMappings);
+
+            // Set test data with your actual data
+            detectedPlaceholders = ['Name', 'certificate no'];
+            excelColumns = ['Name', 'Email', 'certificate no', '9'];
+
+            console.log('Set test data with your actual values - calling updateFieldMapping()');
+            updateFieldMapping();
+        }
+
+        // Google Drive helper functions
+        function refreshDriveTemplates() {
+            loadDriveTemplates();
+            showAlert('Templates refreshed from Google Drive', 'success');
+        }
+
+        function configureDriveAccess() {
+            // Open Drive configuration modal
+            document.getElementById('driveConfigModal').style.display = 'block';
+        }
+
+        function openDriveFolder() {
+            // This will be configured based on the Drive folder ID
+            window.open('https://drive.google.com/drive/folders/YOUR_FOLDER_ID', '_blank');
+        }
+
+        function closeDriveConfig() {
+            document.getElementById('driveConfigModal').style.display = 'none';
+        }
+
+        function extractEmailFromJson() {
+            const jsonContent = document.getElementById('drivePrivateKey').value;
+            const resultDiv = document.getElementById('driveConfigResult');
+
+            if (!jsonContent.trim()) {
+                resultDiv.innerHTML = '<div class="alert alert-warning">Please paste the service account JSON first</div>';
+                return;
+            }
+
+            try {
+                const serviceAccountJson = JSON.parse(jsonContent);
+                if (serviceAccountJson.client_email) {
+                    document.getElementById('driveServiceEmail').value = serviceAccountJson.client_email;
+                    resultDiv.innerHTML = '<div class="alert alert-success">Service account email extracted successfully!</div>';
+                } else {
+                    resultDiv.innerHTML = '<div class="alert alert-error">No client_email found in the JSON</div>';
+                }
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="alert alert-error">Invalid JSON format</div>';
+            }
+        }
+
+        async function saveDriveConfig() {
+            const serviceEmail = document.getElementById('driveServiceEmail').value;
+            const jsonContent = document.getElementById('drivePrivateKey').value;
+            const folderId = document.getElementById('driveFolderId').value;
+            const resultDiv = document.getElementById('driveConfigResult');
+
+            if (!jsonContent || !folderId) {
+                resultDiv.innerHTML = '<div class="alert alert-error">Please provide the service account JSON and folder ID</div>';
+                return;
+            }
+
+            // Parse and validate JSON
+            let serviceAccountJson;
+            try {
+                serviceAccountJson = JSON.parse(jsonContent);
+            } catch (error) {
+                resultDiv.innerHTML = '<div class="alert alert-error">Invalid JSON format. Please paste the entire service account JSON file content.</div>';
+                return;
+            }
+
+            // Validate required fields
+            if (!serviceAccountJson.client_email || !serviceAccountJson.private_key) {
+                resultDiv.innerHTML = '<div class="alert alert-error">Invalid service account JSON. Missing client_email or private_key.</div>';
+                return;
+            }
+
+            // Auto-populate service email if not provided
+            const finalServiceEmail = serviceEmail || serviceAccountJson.client_email;
+            document.getElementById('driveServiceEmail').value = finalServiceEmail;
+
+            try {
+                const response = await fetch('/drive/configure', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        serviceAccountEmail: finalServiceEmail,
+                        serviceAccountJson: serviceAccountJson,
+                        folderId: folderId
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    resultDiv.innerHTML = '<div class="alert alert-success">Google Drive configured successfully!</div>';
+
+                    // Update status indicator
+                    document.getElementById('driveStatus').textContent = 'Connected';
+                    document.getElementById('driveStatus').className = 'status-value status-success';
+
+                    // Refresh templates
+                    loadDriveTemplates();
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-error">${result.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-error">Error: ${error.message}</div>`;
+            }
+        }
+
+        async function testDriveConnection() {
+            const resultDiv = document.getElementById('driveConfigResult');
+
+            try {
+                const response = await fetch('/drive/test');
+                const result = await response.json();
+
+                if (result.success) {
+                    resultDiv.innerHTML = `<div class="alert alert-success">Connection successful! Found ${result.templateCount} templates in folder.</div>`;
+                } else {
+                    resultDiv.innerHTML = `<div class="alert alert-error">Connection failed: ${result.error}</div>`;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `<div class="alert alert-error">Test failed: ${error.message}</div>`;
+            }
         }
 
         // Email functionality
@@ -1615,7 +2251,7 @@ Sincerely,
             console.log('=== DEBUG FILES ===');
             console.log('selectedExcelFile:', selectedExcelFile);
             console.log('selectedTemplateFile:', selectedTemplateFile);
-            console.log('selectedCanvaTemplate:', selectedCanvaTemplate);
+            console.log('selectedDriveTemplate:', selectedDriveTemplate);
 
             const excelInput = document.getElementById('excelFile');
             const templateInput = document.getElementById('templateFile');
@@ -1628,7 +2264,7 @@ Sincerely,
             alert(`Debug Info:
 Excel File: ${selectedExcelFile ? selectedExcelFile.name : 'None'}
 Template File: ${selectedTemplateFile ? selectedTemplateFile.name : 'None'}
-Canva Template: ${selectedCanvaTemplate || 'None'}`);
+Drive Template: ${selectedDriveTemplate ? selectedDriveTemplate.name : 'None'}`);
         }
 
         // Create test data for email testing
@@ -1750,7 +2386,7 @@ Canva Template: ${selectedCanvaTemplate || 'None'}`);
             console.log('Form submitted');
             console.log('selectedExcelFile:', selectedExcelFile);
             console.log('selectedTemplateFile:', selectedTemplateFile);
-            console.log('selectedCanvaTemplate:', selectedCanvaTemplate);
+            console.log('selectedDriveTemplate:', selectedDriveTemplate);
 
             // Validation using global variables
             if (!selectedExcelFile) {
@@ -1759,9 +2395,9 @@ Canva Template: ${selectedCanvaTemplate || 'None'}`);
                 return;
             }
 
-            if (!selectedTemplateFile && !selectedCanvaTemplate) {
+            if (!selectedTemplateFile && !selectedDriveTemplate) {
                 console.log('Template validation failed');
-                showAlert('Please select a template file or choose from Canva templates', 'error');
+                showAlert('Please select a template file or choose from Google Drive templates', 'error');
                 return;
             }
 
@@ -1771,9 +2407,9 @@ Canva Template: ${selectedCanvaTemplate || 'None'}`);
             if (selectedTemplateFile) {
                 formData.append('template', selectedTemplateFile);
                 console.log('Using template file:', selectedTemplateFile.name);
-            } else if (selectedCanvaTemplate) {
-                formData.append('canvaTemplate', selectedCanvaTemplate);
-                console.log('Using Canva template:', selectedCanvaTemplate);
+            } else if (selectedDriveTemplate) {
+                formData.append('driveTemplate', JSON.stringify(selectedDriveTemplate));
+                console.log('Using Google Drive template:', selectedDriveTemplate);
             }
 
             // Add certificate details
@@ -1786,6 +2422,12 @@ Canva Template: ${selectedCanvaTemplate || 'None'}`);
             if (instructor) formData.append('instructor', instructor);
             if (organization) formData.append('organization', organization);
             if (date) formData.append('date', date);
+
+            // Add field mappings if available
+            if (Object.keys(fieldMappings).length > 0) {
+                formData.append('fieldMappings', JSON.stringify(fieldMappings));
+                console.log('Including field mappings:', fieldMappings);
+            }
 
             // Show loading overlay
             showLoadingOverlay(true);
@@ -2061,12 +2703,12 @@ Canva Template: ${selectedCanvaTemplate || 'None'}`);
                 document.getElementById('pptxStatus').textContent = pptxStatus.available ? 'Available' : 'Not available';
                 document.getElementById('pptxStatus').className = `status-value ${pptxStatus.available ? 'status-success' : 'status-error'}`;
 
-                // Check Canva status
-                const canvaResponse = await fetch('/canva/status');
-                const canvaStatus = await canvaResponse.json();
+                // Check Google Drive status
+                const driveResponse = await fetch('/drive/status');
+                const driveStatus = await driveResponse.json();
 
-                document.getElementById('canvaStatus').textContent = canvaStatus.configured ? 'Configured' : 'Mock Mode';
-                document.getElementById('canvaStatus').className = 'status-value status-success';
+                document.getElementById('driveStatus').textContent = driveStatus.configured ? 'Connected' : 'Not configured';
+                document.getElementById('driveStatus').className = `status-value ${driveStatus.configured ? 'status-success' : 'status-error'}`;
 
             } catch (error) {
                 console.error('Error checking system status:', error);

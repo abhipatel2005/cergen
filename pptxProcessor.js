@@ -13,12 +13,12 @@ class PPTXProcessor {
     async checkPythonEnvironment() {
         return new Promise((resolve) => {
             const python = spawn('python', ['--version']);
-            
+
             python.on('close', (code) => {
                 if (code === 0) {
                     // Check if required packages are installed
                     const checkPackages = spawn('python', ['-c', 'import pptx, comtypes; print("OK")']);
-                    
+
                     checkPackages.on('close', (packageCode) => {
                         resolve({
                             available: packageCode === 0,
@@ -38,28 +38,42 @@ class PPTXProcessor {
     /**
      * Process PPTX templates and generate certificates
      * @param {string} templatePath - Path to PPTX template
-     * @param {Array} names - Array of names
+     * @param {Array} data - Array of data objects or names
      * @param {string} outputDir - Output directory
      * @param {Object} options - Additional options
      */
-    async generateCertificates(templatePath, names, outputDir, options = {}) {
+    async generateCertificates(templatePath, data, outputDir, options = {}) {
         try {
             // Ensure output directory exists
             await fs.ensureDir(outputDir);
+
+            // Handle both old format (array of names) and new format (array of objects)
+            let processedData;
+            if (Array.isArray(data) && typeof data[0] === 'string') {
+                // Old format: array of names
+                processedData = data.map(name => ({ name }));
+            } else {
+                // New format: array of objects
+                processedData = data;
+            }
 
             // Prepare additional data
             const additionalData = {
                 date: options.date || new Date().toLocaleDateString(),
                 course: options.course || '',
                 instructor: options.instructor || '',
-                organization: options.organization || ''
+                organization: options.organization || '',
+                fieldMappings: options.fieldMappings || {}
             };
+
+            console.log('PPTX Processor - processedData sample:', processedData[0]);
+            console.log('PPTX Processor - additionalData:', additionalData);
 
             // Call Python script
             const result = await this.callPythonProcessor(
                 templatePath,
                 outputDir,
-                names,
+                processedData,
                 additionalData
             );
 
@@ -74,17 +88,17 @@ class PPTXProcessor {
      * Call the Python processor script
      * @param {string} templatePath - Template path
      * @param {string} outputDir - Output directory
-     * @param {Array} names - Names array
+     * @param {Array} processedData - Processed data array
      * @param {Object} additionalData - Additional data
      */
-    async callPythonProcessor(templatePath, outputDir, names, additionalData) {
+    async callPythonProcessor(templatePath, outputDir, processedData, additionalData) {
         return new Promise((resolve, reject) => {
             const args = [
                 this.pythonScript,
                 '--template', templatePath,
                 '--output-dir', outputDir,
-                '--names', JSON.stringify(names),
-                '--data', JSON.stringify(additionalData)
+                '--data', JSON.stringify(processedData),
+                '--additional', JSON.stringify(additionalData)
             ];
 
             const python = spawn('python', args);
@@ -148,7 +162,7 @@ Example placeholders:
         `;
 
         await fs.writeFile(outputPath.replace('.pptx', '_instructions.txt'), instructions);
-        
+
         return {
             success: true,
             message: 'Instructions created. Please create PPTX template manually.',

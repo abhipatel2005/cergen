@@ -184,41 +184,126 @@ class PPTXProcessor:
                 'error': str(e)
             }
 
+    def process_and_convert_with_data(self, template_path, output_dir, data_obj, additional_data=None):
+        """
+        Complete workflow: process template with data object and convert to PDF
+        """
+        try:
+            # Get name for filename (fallback to 'certificate' if no name)
+            name = data_obj.get('name', data_obj.get('Name', 'certificate'))
+
+            # Prepare dynamic replacements based on data object
+            replacements = {}
+
+            # Add all data from the object as potential replacements
+            for key, value in data_obj.items():
+                if value is not None:
+                    # Add various case formats
+                    replacements[f'{{{{{key}}}}}'] = str(value)
+                    replacements[f'{{{{{key.upper()}}}}}'] = str(value).upper()
+                    replacements[f'{{{{{key.title()}}}}}'] = str(value).title()
+                    replacements[f'{{{{{key.lower()}}}}}'] = str(value).lower()
+
+            # Add additional data if provided
+            if additional_data:
+                for key, value in additional_data.items():
+                    if value and key != 'fieldMappings':  # Skip fieldMappings metadata
+                        replacements[f'{{{{{key}}}}}'] = str(value)
+                        replacements[f'{{{{{key.upper()}}}}}'] = str(value).upper()
+                        replacements[f'{{{{{key.title()}}}}}'] = str(value).title()
+                        replacements[f'{{{{{key.lower()}}}}}'] = str(value).lower()
+
+            print(f"Replacements for {name}: {replacements}", file=sys.stderr)
+
+            # Create safe filename
+            safe_name = "".join(c for c in name if c.isalnum() or c in (' ', '-', '_')).rstrip()
+            safe_name = safe_name.replace(' ', '_')
+
+            # Process PPTX
+            pptx_output = os.path.join(output_dir, f"certificate-{safe_name}.pptx")
+            result = self.process_template(template_path, pptx_output, replacements)
+
+            if not result['success']:
+                return result
+
+            # Convert to PDF
+            pdf_output = os.path.join(output_dir, f"certificate-{safe_name}.pdf")
+            pdf_result = self.convert_to_pdf(pptx_output, pdf_output)
+
+            if pdf_result['success']:
+                # Clean up intermediate PPTX file
+                try:
+                    os.remove(pptx_output)
+                except:
+                    pass
+
+                return {
+                    'success': True,
+                    'name': name,
+                    'filename': f"certificate-{safe_name}.pdf",
+                    'path': pdf_output,
+                    'replacements_made': result['replacements_made'],
+                    'data_used': data_obj
+                }
+            else:
+                return pdf_result
+
+        except Exception as e:
+            return {
+                'success': False,
+                'error': str(e)
+            }
+
 def main():
     parser = argparse.ArgumentParser(description='Process PPTX certificate templates')
     parser.add_argument('--template', required=True, help='Path to PPTX template')
     parser.add_argument('--output-dir', required=True, help='Output directory')
-    parser.add_argument('--names', required=True, help='JSON array of names')
-    parser.add_argument('--data', help='Additional data as JSON')
-    
+    parser.add_argument('--names', help='JSON array of names (legacy)')
+    parser.add_argument('--data', help='JSON array of data objects')
+    parser.add_argument('--additional', help='Additional data as JSON')
+
     args = parser.parse_args()
-    
+
     try:
-        names = json.loads(args.names)
-        additional_data = json.loads(args.data) if args.data else {}
-        
+        # Handle both old and new data formats
+        if args.data:
+            # New format: array of data objects
+            data_objects = json.loads(args.data)
+            additional_data = json.loads(args.additional) if args.additional else {}
+            print(f"Processing {len(data_objects)} certificates with field mappings", file=sys.stderr)
+            print(f"Additional data: {additional_data}", file=sys.stderr)
+        elif args.names:
+            # Legacy format: array of names
+            names = json.loads(args.names)
+            data_objects = [{'name': name} for name in names]
+            additional_data = json.loads(args.additional) if args.additional else {}
+            print(f"Processing {len(names)} certificates (legacy format)", file=sys.stderr)
+        else:
+            raise ValueError("Either --data or --names must be provided")
+
         processor = PPTXProcessor()
         results = []
-        
+
         # Ensure output directory exists
         os.makedirs(args.output_dir, exist_ok=True)
-        
-        for name in names:
-            result = processor.process_and_convert(
-                args.template, 
-                args.output_dir, 
-                name, 
+
+        for i, data_obj in enumerate(data_objects):
+            print(f"Processing certificate {i+1}: {data_obj}", file=sys.stderr)
+            result = processor.process_and_convert_with_data(
+                args.template,
+                args.output_dir,
+                data_obj,
                 additional_data
             )
             results.append(result)
-        
+
         # Output results as JSON
         print(json.dumps({
             'success': True,
             'results': results,
-            'total_processed': len(names)
+            'total_processed': len(data_objects)
         }))
-        
+
     except Exception as e:
         print(json.dumps({
             'success': False,
